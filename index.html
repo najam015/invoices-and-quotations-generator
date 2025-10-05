@@ -9,210 +9,215 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="script.js" defer></script>
-   
+
 </head>
 <body>
-    <div class="container py-4">
-        <div class="row">
-            <div class="col-12 mb-4">
-                <h1 class="text-center">Invoice Generator</h1>
-                <p class="text-center text-muted">Create professional invoices and quotations</p>
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12 mb-4">
+            <h1 class="text-center">Invoice Generator</h1>
+            <p class="text-center text-muted">Create professional invoices and quotations</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Form Section -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    Invoice Details
+                </div>
+                <div class="card-body">
+                    <form id="invoiceForm">
+                        <!-- Business Information -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="businessName" class="form-label">Business Name</label>
+                                <input type="text" class="form-control" id="businessName" value="ABDULLAH SURGICAL">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="businessPhone" class="form-label">Business Phone</label>
+                                <input type="text" class="form-control" id="businessPhone" value="923076830789">
+                            </div>
+
+                            <div class="col-12">
+                                <label for="businessAddress" class="form-label">Business Address</label>
+                                <textarea class="form-control" id="businessAddress" rows="2">Munir Chowk, asad market, shop #1, Gujranwala</textarea>
+                            </div>
+                        </div>
+
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="customerName" class="form-label">Customer Name</label>
+                                <input type="text" class="form-control" id="customerName" value="">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="customerAddress" class="form-label">Customer Address</label>
+                                <textarea class="form-control" id="customerAddress" rows="2"></textarea>
+                            </div>
+
+                        </div>
+
+
+                        <!-- Invoice Details -->
+                        <div class="row mb-3 mt-2">
+                            <div class="col-md-3">
+                                <label for="invoiceNumber" class="form-label">Invoice/Quotation #</label>
+                                <input type="text" class="form-control" id="invoiceNumber" value="INV-001">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="invoiceDate" class="form-label">Date</label>
+                                <input type="date" class="form-control" id="invoiceDate">
+                            </div>
+
+                            <div class="col-md-3" id="validUntilContainer" style="display: none;">
+                                <label for="validUntil" class="form-label">Valid Until</label>
+                                <input type="date" class="form-control" id="validUntil">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label for="currency" class="form-label">Currency</label>
+                                <select class="form-control" id="currency">
+                                    <option value="PKR">PKR (Pakistani Rupee)</option>
+                                    <option value="USD">USD (US Dollar)</option>
+                                    <option value="EUR">EUR (Euro)</option>
+                                    <option value="GBP">GBP (British Pound)</option>
+                                    <option value="AED">AED (UAE Dirham)</option>
+                                    <option value="SAR">SAR (Saudi Riyal)</option>
+                                    <option value="INR">INR (Indian Rupee)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-3 mt-4">
+                                <input type="checkbox" class="form-check-input" id="isQuotation">
+                                <label class="form-check-label" for="isQuotation">This is a quotation</label>
+                            </div>
+                        </div>
+
+
+                        <!-- Line Items -->
+                        <div class="mb-3">
+                            <label class="form-label">Line Items</label>
+                            <div id="lineItems">
+                                <div class="line-item-row row g-2">
+                                    <div class="col-md-5">
+                                        <input type="text" class="form-control" placeholder="Description"
+                                               name="description" value="">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="number" class="form-control" placeholder="Qty" name="quantity"
+                                               min="1" value="1">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="number" class="form-control" placeholder="Rate" name="rate" min="0"
+                                               step="0.01" value="">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="text" class="form-control line-total" placeholder="Total" readonly>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-danger btn-sm remove-line">×</button>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <button type="button" class="btn btn-secondary mt-2" id="addLineItem">Add Item</button>
+                        </div>
+
+                        <!-- Invoice Totals -->
+                        <div class="mb-3">
+                            <label class="form-label">Invoice Totals</label>
+                            <div class="row mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">Subtotal</label>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control" id="subtotal" readonly value="0">
+                                </div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">Tax (%)</label>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="number" class="form-control" id="taxPercent" min="0" step="0.01"
+                                           value="0">
+                                </div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">Tax Amount</label>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control" id="taxAmount" readonly value="0">
+                                </div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">Discount</label>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="number" class="form-control" id="discount" min="0" step="0.01"
+                                           value="0">
+                                </div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">Grand Total</label>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control" id="grandTotal" readonly value="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Comments and Terms -->
+                        <div class="mb-3">
+                            <label class="form-label">Comments</label>
+                            <textarea class="form-control" id="comments" rows="3"
+                                      placeholder="Enter comments for the invoice/quotation">Please check stock at delivery. No claim will be entertained afterward. No Return After 7 days, Loose Items, Fridge Items, damaged or unpacked items can't be returned. No return/claim will be entertained without invoice.</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Terms & Conditions</label>
+                            <textarea class="form-control" id="termsConditions" rows="2"
+                                      placeholder="Enter terms and conditions">Thank you for your continued partnership and support. Your business is greatly appreciated.</textarea>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success" id="generatePDF">Generate PDF</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
 
-        <div class="row">
-            <!-- Form Section -->
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        Invoice Details
-                    </div>
-                    <div class="card-body">
-                        <form id="invoiceForm">
-                            <!-- Business Information -->
-                            <div class="row">
-                              <div class="col-md-6">
-                                <label for="businessName" class="form-label">Business Name</label>
-                                <input type="text" class="form-control" id="businessName" value="ABDULLAH SURGICAL">
-                              </div>
+        <!-- Preview Section -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Invoice Preview</span>
+                    <div class="btn-group btn-group-sm btn-group-format" role="group">
+                        <input type="radio" class="btn-check" name="format" id="formatA4" autocomplete="off" checked>
+                        <label class="btn btn-outline-primary" for="formatA4">A4</label>
 
-                              <div class="col-md-6">
-                                <label for="businessPhone" class="form-label">Business Phone</label>
-                                <input type="text" class="form-control" id="businessPhone" value="923076830789">
-                              </div>
-
-                              <div class="col-12">
-                                <label for="businessAddress" class="form-label">Business Address</label>
-                                <textarea class="form-control" id="businessAddress" rows="2">Munir Chowk, asad market, shop #1, Gujranwala</textarea>
-                              </div>
-                            </div>
-
-                                         
-                            <div class="row">
-                              <div class="col-md-6">
-                                <label for="customerName" class="form-label">Customer Name</label>
-                                <input type="text" class="form-control" id="customerName" value="">
-                              </div>
-                              <div class="col-md-6">
-                                <label for="customerAddress" class="form-label">Customer Address</label>
-                                <textarea class="form-control" id="customerAddress" rows="2"></textarea>
-                              </div>
-                                
-                            </div>
-
-
-                            <!-- Invoice Details -->
-                            <div class="row mb-3 mt-2">
-                                <div class="col-md-3">
-                                    <label for="invoiceNumber" class="form-label">Invoice/Quotation #</label>
-                                    <input type="text" class="form-control" id="invoiceNumber" value="INV-001">
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="invoiceDate" class="form-label">Date</label>
-                                    <input type="date" class="form-control" id="invoiceDate">
-                                </div>
-                                
-                                <div class="col-md-3" id="validUntilContainer" style="display: none;">
-                                  <label for="validUntil" class="form-label">Valid Until</label>
-                                  <input type="date" class="form-control" id="validUntil">
-                                </div>
-
-                                <div class="col-md-3">
-                                    <label for="currency" class="form-label">Currency</label>
-                                    <select class="form-control" id="currency">
-                                        <option value="PKR">PKR (Pakistani Rupee)</option>
-                                        <option value="USD">USD (US Dollar)</option>
-                                        <option value="EUR">EUR (Euro)</option>
-                                        <option value="GBP">GBP (British Pound)</option>
-                                        <option value="AED">AED (UAE Dirham)</option>
-                                        <option value="SAR">SAR (Saudi Riyal)</option>
-                                        <option value="INR">INR (Indian Rupee)</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="col-md-3 mt-4">
-                                  <input type="checkbox" class="form-check-input" id="isQuotation">
-                                  <label class="form-check-label" for="isQuotation">This is a quotation</label>
-                                </div>
-                            </div>
-
-
-                            <!-- Line Items -->
-                            <div class="mb-3">
-                                <label class="form-label">Line Items</label>
-                                <div id="lineItems">
-                                    <div class="line-item-row row g-2">
-                                        <div class="col-md-5">
-                                            <input type="text" class="form-control" placeholder="Description" name="description" value="">
-                                        </div>
-                                        <div class="col-md-2">
-                                            <input type="number" class="form-control" placeholder="Qty" name="quantity" min="1" value="1">
-                                        </div>
-                                        <div class="col-md-2">
-                                            <input type="number" class="form-control" placeholder="Rate" name="rate" min="0" step="0.01" value="">
-                                        </div>
-                                        <div class="col-md-2">
-                                            <input type="text" class="form-control line-total" placeholder="Total" readonly>
-                                        </div>
-                                        <div class="col-md-1">
-                                            <button type="button" class="btn btn-danger btn-sm remove-line">×</button>
-                                        </div>
-                                    </div>
-                                    
-                                </div>
-                                <button type="button" class="btn btn-secondary mt-2" id="addLineItem">Add Item</button>
-                            </div>
-
-                            <!-- Invoice Totals -->
-                            <div class="mb-3">
-                                <label class="form-label">Invoice Totals</label>
-                                <div class="row mb-2">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Subtotal</label>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <input type="text" class="form-control" id="subtotal" readonly value="0">
-                                    </div>
-                                </div>
-                                <div class="row mb-2">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Tax (%)</label>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <input type="number" class="form-control" id="taxPercent" min="0" step="0.01" value="0">
-                                    </div>
-                                </div>
-                                <div class="row mb-2">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Tax Amount</label>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <input type="text" class="form-control" id="taxAmount" readonly value="0">
-                                    </div>
-                                </div>
-                                <div class="row mb-2">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Discount</label>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <input type="number" class="form-control" id="discount" min="0" step="0.01" value="0">
-                                    </div>
-                                </div>
-                                <div class="row mb-2">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Grand Total</label>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <input type="text" class="form-control" id="grandTotal" readonly value="0">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Comments and Terms -->
-                            <div class="mb-3">
-                                <label class="form-label">Comments</label>
-                                <textarea class="form-control" id="comments" rows="3" placeholder="Enter comments for the invoice/quotation">Please check stock at delivery. No claim will be entertained afterward. No Return After 7 days, Loose Items, Fridge Items, damaged or unpacked items can't be returned. No return/claim will be entertained without invoice.</textarea>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Terms & Conditions</label>
-                                <textarea class="form-control" id="termsConditions" rows="2" placeholder="Enter terms and conditions">Thank you for your continued partnership and support. Your business is greatly appreciated.</textarea>
-                            </div>
-
-                            <div class="d-grid gap-2">
-                                <button type="button" class="btn btn-primary" id="generatePreview">Update Preview</button>
-                                <button type="button" class="btn btn-success" id="saveToStorage">Save to Local Storage</button>
-                                <button class="btn btn-success" id="generatePDF">Generate PDF</button>
-                            </div>
-                        </form>
+                        <input type="radio" class="btn-check" name="format" id="formatThermal" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="formatThermal">Thermal</label>
                     </div>
                 </div>
-            </div>
+                <div class="card-body">
+                    <div class="preview-container">
+                        <div class="invoice-preview a4-format" id="invoicePreview">
+                            <!-- Invoice content will be generated here -->
+                        </div>
+                    </div>
 
-            <!-- Preview Section -->
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <span>Invoice Preview</span>
-                        <div class="btn-group btn-group-sm btn-group-format" role="group">
-                            <input type="radio" class="btn-check" name="format" id="formatA4" autocomplete="off" checked>
-                            <label class="btn btn-outline-primary" for="formatA4">A4</label>
-                            
-                            <input type="radio" class="btn-check" name="format" id="formatThermal" autocomplete="off">
-                            <label class="btn btn-outline-primary" for="formatThermal">Thermal</label>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="preview-container">
-                            <div class="invoice-preview a4-format" id="invoicePreview">
-                                <!-- Invoice content will be generated here -->
-                            </div>
-                        </div>
-                        
-                    </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 </body>
 </html>
