@@ -394,12 +394,34 @@ function generatePDF() {
             pdf = new jsPDF('p', 'mm', [80, 200]);
         }
 
-        // Calculate dimensions to fit the image to the PDF page
+        // Get PDF page dimensions
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
 
-        // Add image to PDF
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        // Calculate canvas dimensions and aspect ratio
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const canvasAspectRatio = canvasWidth / canvasHeight;
+
+        // Calculate dimensions to maintain aspect ratio
+        let imgWidth, imgHeight;
+        
+        if (canvasAspectRatio > (pdfWidth / pdfHeight)) {
+            // Canvas is wider relative to PDF page - fit to width
+            imgWidth = pdfWidth;
+            imgHeight = pdfWidth / canvasAspectRatio;
+        } else {
+            // Canvas is taller relative to PDF page - fit to height
+            imgHeight = pdfHeight;
+            imgWidth = pdfHeight * canvasAspectRatio;
+        }
+
+        // Center the image on the page
+        const x = (pdfWidth - imgWidth) / 2;
+        const y = (pdfHeight - imgHeight) / 2;
+
+        // Add image to PDF with proper aspect ratio
+        pdf.addImage(imgData, 'JPEG', x, y, imgWidth, imgHeight);
 
         // Save the PDF
         pdf.save('invoice.pdf');
