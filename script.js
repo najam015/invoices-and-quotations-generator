@@ -59,6 +59,11 @@ document.addEventListener('DOMContentLoaded', function () {
         generatePDF();
     });
 
+    // Share Form
+    document.getElementById('shareForm').addEventListener('click', function () {
+        shareForm();
+    });
+
     // Format selection
     document.querySelectorAll('input[name="format"]').forEach(radio => {
         radio.addEventListener('change', function () {
@@ -70,6 +75,9 @@ document.addEventListener('DOMContentLoaded', function () {
     calculateLineTotals();
     calculateTotals();
     generatePreview();
+
+    // Load from URL parameters if available
+    loadFromUrlParams();
 });
 
 // Auto-save and auto-update function
@@ -144,12 +152,12 @@ function generatePreview() {
     const documentType = isQuotation ? 'QUOTATION' : 'INVOICE';
 
     // Get business details
-    const businessName = document.getElementById('businessName').value || 'ABDULLAH SURGICAL';
-    const businessAddress = document.getElementById('businessAddress').value || 'Munir Chowk, asad markeet, shop #1, Gujranwala';
-    const businessPhone = document.getElementById('businessPhone').value || '03076830789';
+    const businessName = document.getElementById('businessName').value || '';
+    const businessAddress = document.getElementById('businessAddress').value || '';
+    const businessPhone = document.getElementById('businessPhone').value || '';
 
     // Get customer details
-    const customerName = document.getElementById('customerName').value || 'Customer Name';
+    const customerName = document.getElementById('customerName').value || '';
     const customerAddress = document.getElementById('customerAddress').value || '';
 
     // Get invoice details
@@ -396,4 +404,158 @@ function generatePDF() {
         // Save the PDF
         pdf.save('invoice.pdf');
     });
+}
+
+function shareForm() {
+    const formData = {
+        businessName: document.getElementById('businessName').value,
+        businessAddress: document.getElementById('businessAddress').value,
+        businessPhone: document.getElementById('businessPhone').value,
+        customerName: document.getElementById('customerName').value,
+        customerAddress: document.getElementById('customerAddress').value,
+        invoiceNumber: document.getElementById('invoiceNumber').value,
+        invoiceDate: document.getElementById('invoiceDate').value,
+        isQuotation: document.getElementById('isQuotation').checked,
+        validUntil: document.getElementById('validUntil').value,
+        taxPercent: document.getElementById('taxPercent').value,
+        discount: document.getElementById('discount').value,
+        comments: document.getElementById('comments').value,
+        termsConditions: document.getElementById('termsConditions').value,
+        currency: document.getElementById('currency').value,
+        lineItems: []
+    };
+
+    // Collect line items
+    document.querySelectorAll('.line-item-row').forEach(row => {
+        const description = row.querySelector('input[name="description"]').value;
+        const quantity = row.querySelector('input[name="quantity"]').value;
+        const rate = row.querySelector('input[name="rate"]').value;
+        
+        if (description || quantity !== '1' || rate) {
+            formData.lineItems.push({
+                description: description,
+                quantity: quantity,
+                rate: rate
+            });
+        }
+    });
+
+    // Create URL with parameters
+    const url = new URL(window.location.href);
+    url.search = ''; // Clear existing parameters
+    
+    // Add form data as URL parameters
+    Object.keys(formData).forEach(key => {
+        if (key === 'lineItems') {
+            if (formData.lineItems.length > 0) {
+                url.searchParams.set('lineItems', JSON.stringify(formData.lineItems));
+            }
+        } else if (formData[key] !== '' && formData[key] !== false && formData[key] !== '0') {
+            url.searchParams.set(key, formData[key]);
+        }
+    });
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(url.toString()).then(() => {
+        // Show success message
+        const button = document.getElementById('shareForm');
+        const originalText = button.innerHTML;
+        button.innerHTML = '✅ Copied!';
+        button.classList.remove('btn-primary');
+        button.classList.add('btn-success');
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-primary');
+        }, 2000);
+    }).catch(err => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = url.toString();
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        // Show success message
+        const button = document.getElementById('shareForm');
+        const originalText = button.innerHTML;
+        button.innerHTML = '✅ Copied!';
+        button.classList.remove('btn-primary');
+        button.classList.add('btn-success');
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-primary');
+        }, 2000);
+    });
+}
+
+function loadFromUrlParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    if (urlParams.toString() === '') {
+        return; // No parameters to load
+    }
+
+    // Load basic form fields
+    const fields = [
+        'businessName', 'businessAddress', 'businessPhone',
+        'customerName', 'customerAddress', 'invoiceNumber',
+        'invoiceDate', 'validUntil', 'taxPercent', 'discount',
+        'comments', 'termsConditions', 'currency'
+    ];
+
+    fields.forEach(field => {
+        const value = urlParams.get(field);
+        if (value !== null) {
+            const element = document.getElementById(field);
+            if (element) {
+                element.value = value;
+            }
+        }
+    });
+
+    // Load checkbox
+    const isQuotation = urlParams.get('isQuotation');
+    if (isQuotation !== null) {
+        document.getElementById('isQuotation').checked = isQuotation === 'true';
+        document.getElementById('validUntilContainer').style.display = 
+            isQuotation === 'true' ? 'block' : 'none';
+    }
+
+    // Load line items
+    const lineItemsParam = urlParams.get('lineItems');
+    if (lineItemsParam) {
+        try {
+            const lineItems = JSON.parse(lineItemsParam);
+            
+            // Clear existing line items
+            document.getElementById('lineItems').innerHTML = '';
+            
+            // Add line items from URL
+            lineItems.forEach(item => {
+                addLineItem();
+                const lastRow = document.querySelector('.line-item-row:last-child');
+                lastRow.querySelector('input[name="description"]').value = item.description || '';
+                lastRow.querySelector('input[name="quantity"]').value = item.quantity || '1';
+                lastRow.querySelector('input[name="rate"]').value = item.rate || '0';
+                calculateLineTotal(lastRow.querySelector('input[name="quantity"]'));
+            });
+        } catch (e) {
+            console.error('Error parsing line items from URL:', e);
+        }
+    }
+
+    // Recalculate totals and update preview
+    calculateTotals();
+    generatePreview();
+    
+    // Save the loaded data to localStorage immediately
+    saveToStorage(true);
+    
+    // Clear URL parameters to keep the URL clean
+    window.history.replaceState({}, document.title, window.location.pathname);
 }
