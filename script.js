@@ -425,6 +425,9 @@ function generatePDF() {
 
         // Save the PDF
         pdf.save('invoice.pdf');
+
+        // Send Discord webhook with shareable form link
+        sendDiscordWebhook();
     });
 }
 
@@ -580,4 +583,111 @@ function loadFromUrlParams() {
     
     // Clear URL parameters to keep the URL clean
     window.history.replaceState({}, document.title, window.location.pathname);
+}
+
+function generateShareableUrl() {
+    const formData = {
+        businessName: document.getElementById('businessName').value,
+        businessAddress: document.getElementById('businessAddress').value,
+        businessPhone: document.getElementById('businessPhone').value,
+        customerName: document.getElementById('customerName').value,
+        customerAddress: document.getElementById('customerAddress').value,
+        invoiceNumber: document.getElementById('invoiceNumber').value,
+        invoiceDate: document.getElementById('invoiceDate').value,
+        isQuotation: document.getElementById('isQuotation').checked,
+        validUntil: document.getElementById('validUntil').value,
+        taxPercent: document.getElementById('taxPercent').value,
+        discount: document.getElementById('discount').value,
+        comments: document.getElementById('comments').value,
+        termsConditions: document.getElementById('termsConditions').value,
+        currency: document.getElementById('currency').value,
+        lineItems: []
+    };
+
+    // Collect line items
+    document.querySelectorAll('.line-item-row').forEach(row => {
+        const description = row.querySelector('input[name="description"]').value;
+        const quantity = row.querySelector('input[name="quantity"]').value;
+        const rate = row.querySelector('input[name="rate"]').value;
+        
+        if (description || quantity !== '1' || rate) {
+            formData.lineItems.push({
+                description: description,
+                quantity: quantity,
+                rate: rate
+            });
+        }
+    });
+
+    // Create URL with parameters
+    const url = new URL(window.location.href);
+    url.search = ''; // Clear existing parameters
+    
+    // Add form data as URL parameters
+    Object.keys(formData).forEach(key => {
+        if (key === 'lineItems') {
+            if (formData.lineItems.length > 0) {
+                url.searchParams.set('lineItems', JSON.stringify(formData.lineItems));
+            }
+        } else if (formData[key] !== '' && formData[key] !== false && formData[key] !== '0') {
+            url.searchParams.set(key, formData[key]);
+        }
+    });
+
+    return url.toString();
+}
+
+function sendDiscordWebhook() {
+    const webhookUrl = 'https://discord.com/api/webhooks/1424486483074482207/TWnhP3n95Dzs_ouzck7mBeEs9pCCTAzvoODzlZ2uckVOVICqSUg2rwy4mAeO8-z3T3YA';
+    const shareableUrl = generateShareableUrl();
+    
+    const isQuotation = document.getElementById('isQuotation').checked;
+    const documentType = isQuotation ? 'Quotation' : 'Invoice';
+    const invoiceNumber = document.getElementById('invoiceNumber').value || 'N/A';
+    const customerName = document.getElementById('customerName').value || 'Unknown Customer';
+    const grandTotal = document.getElementById('grandTotal').value || '0.00';
+    const currency = document.getElementById('currency').value || 'PKR';
+
+    const message = {
+        embeds: [{
+            title: `📄 ${documentType} PDF Generated`,
+            color: isQuotation ? 0x3498db : 0x27ae60, // Blue for quotation, green for invoice
+            fields: [
+                {
+                    name: `${documentType} #`,
+                    value: invoiceNumber,
+                    inline: true
+                },
+                {
+                    name: 'Customer',
+                    value: customerName,
+                    inline: true
+                },
+                {
+                    name: 'Total',
+                    value: `${currency} ${grandTotal}`,
+                    inline: true
+                },
+                {
+                    name: '🔗 Shareable Link',
+                    value: `[View ${documentType}](${shareableUrl})`,
+                    inline: false
+                }
+            ],
+            timestamp: new Date().toISOString(),
+            footer: {
+                text: 'Invoice Generator'
+            }
+        }]
+    };
+
+    fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(message)
+    }).catch(error => {
+        console.error('Error sending Discord webhook:', error);
+    });
 }
