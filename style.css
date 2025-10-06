@@ -105,18 +105,52 @@ body {
 .thermal-format .invoice-header strong {
     word-wrap: break-word;
     word-break: break-word;
+    width: 100%;
+    display: block;
 }
 
 .thermal-format .invoice-header div:not(.invoice-title) {
     word-wrap: break-word;
     word-break: break-word;
     width: 100%;
+    display: block;
 }
 
 .thermal-format .invoice-header {
     padding-bottom: 10px;
     margin-bottom: 10px;
 }
+
+.thermal-format .invoice-header div {
+    display: block !important;
+    width: 100% !important;
+    margin-bottom: 2px;
+    float: none !important;
+    flex: none !important;
+}
+
+/* Override any Bootstrap grid system for thermal format */
+.thermal-format * {
+    box-sizing: border-box !important;
+}
+
+.thermal-format .row {
+    display: block !important;
+    margin: 0 !important;
+}
+
+.thermal-format [class*="col-"] {
+    display: block !important;
+    width: 100% !important;
+    float: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.thermal-format .customer-section {
+    margin-bottom: 15px;
+}
+
 
 .thermal-format .invoice-table th,
 .thermal-format .invoice-table td {

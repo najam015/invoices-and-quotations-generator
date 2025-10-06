@@ -2,9 +2,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // Load data from localStorage if available
     loadFromStorage();
 
-    // Set today's date as default
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('invoiceDate').value = today;
+    // Set current local date and time as default
+    const now = new Date();
+    // Get local timezone offset and adjust
+    const offsetMs = now.getTimezoneOffset() * 60 * 1000;
+    const localTime = new Date(now.getTime() - offsetMs);
+    const datetime = localTime.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
+    document.getElementById('invoiceDate').value = datetime;
 
     // Set valid until to 7 days from now
     const nextWeek = new Date();
@@ -165,7 +169,18 @@ function generatePreview() {
     const invoiceDate = document.getElementById('invoiceDate').value;
     const validUntil = document.getElementById('validUntil').value;
 
-    // Format date
+    // Format datetime for both A4 and thermal formats
+    const formatDateTime = (dateTimeString) => {
+        if (!dateTimeString) return '';
+        const date = new Date(dateTimeString);
+        
+        const dateOptions = {year: 'numeric', month: 'long', day: 'numeric'};
+        const timeOptions = {hour: 'numeric', minute: '2-digit', hour12: true};
+        
+        return `${date.toLocaleDateString('en-US', dateOptions)} ${date.toLocaleTimeString('en-US', timeOptions)}`;
+    };
+    
+    // Format date only (for valid until field)
     const formatDate = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);
@@ -204,8 +219,46 @@ function generatePreview() {
     // Get comments and terms
     const comments = document.getElementById('comments').value || '';
     const termsConditions = document.getElementById('termsConditions').value || '';
+    
+    // Check current format
+    const currentFormat = document.querySelector('input[name="format"]:checked').id;
+    const isThermal = currentFormat === 'formatThermal';
+    
+    console.log('Current format:', currentFormat, 'Is thermal:', isThermal); // Debug log
+    
+    // Format date and time for thermal format
+    const formatDateWithTime = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const now = new Date();
+        
+        // Use current time for thermal format
+        const displayDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 
+                                   now.getHours(), now.getMinutes(), now.getSeconds());
+        
+        const dateOptions = {year: 'numeric', month: 'long', day: 'numeric'};
+        const timeOptions = {hour: 'numeric', minute: '2-digit', hour12: true};
+        
+        return `${displayDate.toLocaleDateString('en-US', dateOptions)} ${displayDate.toLocaleTimeString('en-US', timeOptions)}`;
+    };
 
-    preview.innerHTML = `
+    let headerHTML;
+    if (isThermal) {
+        // Thermal format: stack everything vertically
+        headerHTML = `
+                <div class="invoice-header">
+                    <div class="invoice-title">${documentType}</div>
+                    <div><strong>${businessName}</strong></div>
+                    <div>${businessAddress.replace(/\n/g, '<br>')}</div>
+                    <div>Phone: ${businessPhone}</div>
+                    <br>
+                    <div><strong>${documentType.toUpperCase()} #: ${invoiceNumber}</strong></div>
+                    <div><strong>Date: ${formatDateTime(invoiceDate)}</strong></div>
+                    ${isQuotation && validUntil ? `<div><strong>Valid Until: ${formatDate(validUntil)}</strong></div>` : ''}
+                </div>`;
+    } else {
+        // A4 format: keep original layout
+        headerHTML = `
                 <div class="invoice-header">
                     <div class="row">
                         <div class="col-6">
@@ -216,19 +269,33 @@ function generatePreview() {
                         </div>
                         <div class="col-6 text-end">
                             <div><strong>${documentType} #:</strong> ${invoiceNumber}</div>
-                            <div><strong>Date:</strong> ${formatDate(invoiceDate)}</div>
+                            <div><strong>Date:</strong> ${formatDateTime(invoiceDate)}</div>
                             ${isQuotation && validUntil ? `<div><strong>Valid Until:</strong> ${formatDate(validUntil)}</div>` : ''}
                         </div>
                     </div>
-                </div>
-                
+                </div>`;
+    }
+
+    let customerHTML;
+    if (isThermal) {
+        customerHTML = `
+                <div class="customer-section">
+                    <strong>TO:</strong><br>
+                    ${customerName}<br>
+                    ${customerAddress.replace(/\n/g, '<br>')}
+                </div>`;
+    } else {
+        customerHTML = `
                 <div class="row mb-4">
                     <div class="col-12">
                         <strong>TO:</strong><br>
                         ${customerName}<br>
                         ${customerAddress.replace(/\n/g, '<br>')}
                     </div>
-                </div>
+                </div>`;
+    }
+
+    preview.innerHTML = headerHTML + customerHTML + `
                 
                 <table class="invoice-table">
                     <thead>
@@ -682,11 +749,15 @@ function sendDiscordWebhook() {
     const discount = document.getElementById('discount').value || '0.00';
     const grandTotal = document.getElementById('grandTotal').value || '0.00';
     
-    // Format date
-    const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'});
+    // Format datetime for webhook
+    const formatDateTime = (dateTimeString) => {
+        if (!dateTimeString) return 'N/A';
+        const date = new Date(dateTimeString);
+        
+        const dateOptions = {year: 'numeric', month: 'short', day: 'numeric'};
+        const timeOptions = {hour: 'numeric', minute: '2-digit', hour12: true};
+        
+        return `${date.toLocaleDateString('en-US', dateOptions)} ${date.toLocaleTimeString('en-US', timeOptions)}`;
     };
     
     // Collect line items
@@ -716,7 +787,7 @@ function sendDiscordWebhook() {
             fields: [
                 {
                     name: `${documentType} Details`,
-                    value: `**${documentType} #:** ${invoiceNumber}\n**Date:** ${formatDate(invoiceDate)}\n**Business:** ${businessName}`,
+                    value: `**${documentType} #:** ${invoiceNumber}\n**Date:** ${formatDateTime(invoiceDate)}\n**Business:** ${businessName}`,
                     inline: false
                 },
                 {
