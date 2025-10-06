@@ -373,16 +373,31 @@ function loadFromStorage() {
 function generatePDF() {
     const element = document.getElementById('invoicePreview');
     const format = document.querySelector('input[name="format"]:checked').id;
+    const previewContainer = document.querySelector('.preview-container');
+    
+    // Temporarily remove height constraints for thermal format to capture full content
+    let originalMaxHeight = null;
+    if (format === 'formatThermal') {
+        originalMaxHeight = previewContainer.style.maxHeight;
+        previewContainer.style.maxHeight = 'none';
+        previewContainer.style.height = 'auto';
+    }
 
     // Use html2canvas to capture the invoice preview as an image
     html2canvas(element, {
         scale: 2, // Higher scale for better quality
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        height: element.scrollHeight // Capture full scrollable height
     }).then(canvas => {
         // Convert canvas to image data
         const imgData = canvas.toDataURL('image/jpeg', 1.0);
+
+        // Calculate canvas dimensions and aspect ratio first
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const canvasAspectRatio = canvasWidth / canvasHeight;
 
         // Create PDF with the correct dimensions
         const {jsPDF} = window.jspdf;
@@ -391,17 +406,15 @@ function generatePDF() {
         if (format === 'formatA4') {
             pdf = new jsPDF('p', 'mm', 'a4');
         } else if (format === 'formatThermal') {
-            pdf = new jsPDF('p', 'mm', [80, 200]);
+            // Calculate dynamic height based on canvas aspect ratio for thermal format
+            const thermalWidth = 80; // 80mm width
+            const calculatedHeight = Math.max(200, (thermalWidth * canvasHeight) / canvasWidth);
+            pdf = new jsPDF('p', 'mm', [thermalWidth, calculatedHeight]);
         }
 
         // Get PDF page dimensions
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
-
-        // Calculate canvas dimensions and aspect ratio
-        const canvasWidth = canvas.width;
-        const canvasHeight = canvas.height;
-        const canvasAspectRatio = canvasWidth / canvasHeight;
 
         // Calculate dimensions to maintain aspect ratio
         let imgWidth, imgHeight;
@@ -426,8 +439,21 @@ function generatePDF() {
         // Save the PDF
         pdf.save('invoice.pdf');
 
+        // Restore original height constraints
+        if (format === 'formatThermal' && originalMaxHeight !== null) {
+            previewContainer.style.maxHeight = originalMaxHeight;
+            previewContainer.style.height = '';
+        }
+
         // Send Discord webhook with shareable form link
         sendDiscordWebhook();
+    }).catch(error => {
+        // Restore height constraints even if there's an error
+        if (format === 'formatThermal' && originalMaxHeight !== null) {
+            previewContainer.style.maxHeight = originalMaxHeight;
+            previewContainer.style.height = '';
+        }
+        console.error('PDF generation failed:', error);
     });
 }
 
