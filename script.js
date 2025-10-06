@@ -671,33 +671,73 @@ function sendDiscordWebhook() {
     const documentType = isQuotation ? 'Quotation' : 'Invoice';
     const invoiceNumber = document.getElementById('invoiceNumber').value || 'N/A';
     const customerName = document.getElementById('customerName').value || 'Unknown Customer';
-    const grandTotal = document.getElementById('grandTotal').value || '0.00';
+    const customerAddress = document.getElementById('customerAddress').value || '';
+    const businessName = document.getElementById('businessName').value || 'N/A';
+    const invoiceDate = document.getElementById('invoiceDate').value || '';
     const currency = document.getElementById('currency').value || 'PKR';
+    
+    // Get totals
+    const subtotal = document.getElementById('subtotal').value || '0.00';
+    const taxAmount = document.getElementById('taxAmount').value || '0.00';
+    const discount = document.getElementById('discount').value || '0.00';
+    const grandTotal = document.getElementById('grandTotal').value || '0.00';
+    
+    // Format date
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'});
+    };
+    
+    // Collect line items
+    let lineItemsText = '';
+    let itemCount = 0;
+    document.querySelectorAll('.line-item-row').forEach(row => {
+        const description = row.querySelector('input[name="description"]').value || '';
+        const quantity = row.querySelector('input[name="quantity"]').value || '0';
+        const rate = parseFloat(row.querySelector('input[name="rate"]').value || 0).toFixed(2);
+        const total = parseFloat(row.querySelector('.line-total').value || 0).toFixed(2);
+
+        if (description) {
+            itemCount++;
+            lineItemsText += `**${itemCount}.** ${description}\n`;
+            lineItemsText += `${quantity} × ${currency} ${rate} = ${currency} ${total}\n\n`;
+        }
+    });
+    
+    if (!lineItemsText) {
+        lineItemsText = 'No items added';
+    }
 
     const message = {
         embeds: [{
             title: `📄 ${documentType} PDF Generated`,
-            color: isQuotation ? 0x3498db : 0x27ae60, // Blue for quotation, green for invoice
+            color: isQuotation ? 0x3498db : 0x27ae60,
             fields: [
                 {
-                    name: `${documentType} #`,
-                    value: invoiceNumber,
-                    inline: true
-                },
-                {
-                    name: 'Customer',
-                    value: customerName,
-                    inline: true
-                },
-                {
-                    name: 'Total',
-                    value: `${currency} ${grandTotal}`,
-                    inline: true
-                },
-                {
-                    name: '🔗 Shareable Link',
-                    value: `[View ${documentType}](${shareableUrl})`,
+                    name: `${documentType} Details`,
+                    value: `**${documentType} #:** ${invoiceNumber}\n**Date:** ${formatDate(invoiceDate)}\n**Business:** ${businessName}`,
                     inline: false
+                },
+                {
+                    name: 'Customer Information',
+                    value: `**Name:** ${customerName}\n**Address:** ${customerAddress || 'N/A'}`,
+                    inline: false
+                },
+                {
+                    name: 'Line Items',
+                    value: lineItemsText.length > 1024 ? lineItemsText.substring(0, 1021) + '...' : lineItemsText,
+                    inline: false
+                },
+                {
+                    name: 'Summary',
+                    value: `**Subtotal:** ${currency} ${subtotal}\n**Tax:** ${currency} ${taxAmount}\n**Discount:** ${currency} ${discount}\n**Total:** ${currency} ${grandTotal}`,
+                    inline: true
+                },
+                {
+                    name: '🔗 Actions',
+                    value: `[View ${documentType}](${shareableUrl})`,
+                    inline: true
                 }
             ],
             timestamp: new Date().toISOString(),
