@@ -45,6 +45,20 @@
                                 <label for="businessAddress" class="form-label">Business Address</label>
                                 <textarea class="form-control" id="businessAddress" rows="2"></textarea>
                             </div>
+                            
+                            <div class="col-md-6">
+                                <label for="businessLogo" class="form-label">Business Logo</label>
+                                <input type="file" class="form-control" id="businessLogo" accept="image/*">
+                                <small class="form-text text-muted">Upload PNG, JPG, or other image formats</small>
+                            </div>
+                            
+                            <div class="col-md-6" id="logoPreview" style="display: none;">
+                                <label class="form-label">Logo Preview</label>
+                                <div>
+                                    <img id="logoPreviewImg" src="" alt="Logo Preview" style="max-width: 150px; max-height: 80px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <button type="button" class="btn btn-sm btn-danger ms-2" id="removeLogo">Remove Logo</button>
+                                </div>
+                            </div>
                         </div>
 
 

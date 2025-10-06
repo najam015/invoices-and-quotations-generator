@@ -1,6 +1,9 @@
 document.addEventListener('DOMContentLoaded', function () {
     // Load data from localStorage if available
     loadFromStorage();
+    
+    // Load logo from localStorage
+    loadLogoFromStorage();
 
     // Set current local date and time as default
     const now = new Date();
@@ -73,6 +76,16 @@ document.addEventListener('DOMContentLoaded', function () {
         radio.addEventListener('change', function () {
             updatePreviewFormat();
         });
+    });
+
+    // Logo upload functionality
+    document.getElementById('businessLogo').addEventListener('change', function(e) {
+        handleLogoUpload(e);
+    });
+
+    // Remove logo functionality
+    document.getElementById('removeLogo').addEventListener('click', function() {
+        removeLogo();
     });
 
     // Initialize with sample data
@@ -242,11 +255,15 @@ function generatePreview() {
         return `${displayDate.toLocaleDateString('en-US', dateOptions)} ${displayDate.toLocaleTimeString('en-US', timeOptions)}`;
     };
 
+    // Get logo from localStorage
+    const savedLogo = localStorage.getItem('businessLogo');
+    
     let headerHTML;
     if (isThermal) {
         // Thermal format: stack everything vertically
         headerHTML = `
                 <div class="invoice-header">
+                    ${savedLogo ? `<div class="logo-container"><img src="${savedLogo}" alt="Business Logo" class="business-logo thermal-logo"></div>` : ''}
                     <div class="invoice-title">${documentType}</div>
                     <div><strong>${businessName}</strong></div>
                     <div>${businessAddress.replace(/\n/g, '<br>')}</div>
@@ -260,6 +277,7 @@ function generatePreview() {
         // A4 format: keep original layout
         headerHTML = `
                 <div class="invoice-header">
+                    ${savedLogo ? `<div class="logo-container text-center mb-3"><img src="${savedLogo}" alt="Business Logo" class="business-logo a4-logo"></div>` : ''}
                     <div class="row">
                         <div class="col-6">
                             <div class="invoice-title">${documentType}</div>
@@ -743,6 +761,9 @@ function sendDiscordWebhook() {
     const invoiceDate = document.getElementById('invoiceDate').value || '';
     const currency = document.getElementById('currency').value || 'PKR';
     
+    // Get business logo
+    const businessLogo = localStorage.getItem('businessLogo');
+    
     // Get totals
     const subtotal = document.getElementById('subtotal').value || '0.00';
     const taxAmount = document.getElementById('taxAmount').value || '0.00';
@@ -780,51 +801,162 @@ function sendDiscordWebhook() {
         lineItemsText = 'No items added';
     }
 
-    const message = {
-        embeds: [{
-            title: `📄 ${documentType} PDF Generated`,
-            color: isQuotation ? 0x3498db : 0x27ae60,
-            fields: [
-                {
-                    name: `${documentType} Details`,
-                    value: `**${documentType} #:** ${invoiceNumber}\n**Date:** ${formatDateTime(invoiceDate)}\n**Business:** ${businessName}`,
-                    inline: false
-                },
-                {
-                    name: 'Customer Information',
-                    value: `**Name:** ${customerName}\n**Address:** ${customerAddress || 'N/A'}`,
-                    inline: false
-                },
-                {
-                    name: 'Line Items',
-                    value: lineItemsText.length > 1024 ? lineItemsText.substring(0, 1021) + '...' : lineItemsText,
-                    inline: false
-                },
-                {
-                    name: 'Summary',
-                    value: `**Subtotal:** ${currency} ${subtotal}\n**Tax:** ${currency} ${taxAmount}\n**Discount:** ${currency} ${discount}\n**Total:** ${currency} ${grandTotal}`,
-                    inline: true
-                },
-                {
-                    name: '🔗 Actions',
-                    value: `[View ${documentType}](${shareableUrl})`,
-                    inline: true
-                }
-            ],
-            timestamp: new Date().toISOString(),
-            footer: {
-                text: 'Invoice Generator'
+    const embedData = {
+        title: `📄 ${documentType} PDF Generated`,
+        color: isQuotation ? 0x3498db : 0x27ae60,
+        fields: [
+            {
+                name: `${documentType} Details`,
+                value: `**${documentType} #:** ${invoiceNumber}\n**Date:** ${formatDateTime(invoiceDate)}\n**Business:** ${businessName}`,
+                inline: false
+            },
+            {
+                name: 'Customer Information',
+                value: `**Name:** ${customerName}\n**Address:** ${customerAddress || 'N/A'}`,
+                inline: false
+            },
+            {
+                name: 'Line Items',
+                value: lineItemsText.length > 1024 ? lineItemsText.substring(0, 1021) + '...' : lineItemsText,
+                inline: false
+            },
+            {
+                name: 'Summary',
+                value: `**Subtotal:** ${currency} ${subtotal}\n**Tax:** ${currency} ${taxAmount}\n**Discount:** ${currency} ${discount}\n**Total:** ${currency} ${grandTotal}`,
+                inline: true
+            },
+            {
+                name: '🔗 Actions',
+                value: `[View ${documentType}](${shareableUrl})`,
+                inline: true
             }
-        }]
+        ],
+        timestamp: new Date().toISOString(),
+        footer: {
+            text: 'Invoice Generator'
+        }
     };
 
-    fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(message)
-    }).catch(error => {
-        console.error('Error sending Discord webhook:', error);
-    });
+    // Send webhook with logo if available
+    if (businessLogo) {
+        // Convert base64 to blob for file upload
+        try {
+            const base64Data = businessLogo.split(',')[1];
+            const mimeType = businessLogo.split(',')[0].split(':')[1].split(';')[0];
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: mimeType });
+            
+            // Create FormData for multipart upload
+            const formData = new FormData();
+            formData.append('files[0]', blob, 'business-logo.png');
+            
+            // Add logo reference to embed
+            embedData.thumbnail = {
+                url: 'attachment://business-logo.png'
+            };
+            
+            formData.append('payload_json', JSON.stringify({
+                embeds: [embedData]
+            }));
+
+            fetch(webhookUrl, {
+                method: 'POST',
+                body: formData
+            }).catch(error => {
+                console.error('Error sending Discord webhook with logo:', error);
+                // Fallback to sending without logo
+                sendWebhookWithoutLogo();
+            });
+        } catch (error) {
+            console.warn('Could not process logo for webhook:', error);
+            sendWebhookWithoutLogo();
+        }
+    } else {
+        sendWebhookWithoutLogo();
+    }
+
+    function sendWebhookWithoutLogo() {
+        const message = {
+            embeds: [embedData]
+        };
+
+        fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(message)
+        }).catch(error => {
+            console.error('Error sending Discord webhook:', error);
+        });
+    }
+}
+
+function handleLogoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Check file size (limit to 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+        alert('Logo file size should be less than 2MB');
+        event.target.value = '';
+        return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please select a valid image file');
+        event.target.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64Image = e.target.result;
+        
+        // Save to localStorage
+        localStorage.setItem('businessLogo', base64Image);
+        
+        // Show preview
+        showLogoPreview(base64Image);
+        
+        // Update invoice preview
+        generatePreview();
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+function showLogoPreview(base64Image) {
+    const logoPreview = document.getElementById('logoPreview');
+    const logoPreviewImg = document.getElementById('logoPreviewImg');
+    
+    logoPreviewImg.src = base64Image;
+    logoPreview.style.display = 'block';
+}
+
+function removeLogo() {
+    // Remove from localStorage
+    localStorage.removeItem('businessLogo');
+    
+    // Hide preview
+    document.getElementById('logoPreview').style.display = 'none';
+    
+    // Clear file input
+    document.getElementById('businessLogo').value = '';
+    
+    // Update invoice preview
+    generatePreview();
+}
+
+function loadLogoFromStorage() {
+    const savedLogo = localStorage.getItem('businessLogo');
+    if (savedLogo) {
+        showLogoPreview(savedLogo);
+    }
 }
