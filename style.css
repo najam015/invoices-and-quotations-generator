@@ -206,6 +206,18 @@ body {
         min-width: 210mm !important;
         max-width: none !important;
     }
+
+    /* Mobile responsive for extra charges */
+    .extra-charges-wrapper {
+        text-align: center;
+    }
+    
+    .extra-charges-section {
+        float: none;
+        display: block;
+        width: 100%;
+        max-width: none;
+    }
 }
 
 
@@ -411,6 +423,211 @@ body {
     text-align: center;
     margin-bottom: 10px;
 }
+
+/* Extra Charges Wrapper */
+.extra-charges-wrapper {
+    margin: 25px 0;
+    clear: both;
+    overflow: hidden;
+}
+
+/* Extra Charges Section */
+.extra-charges-section {
+    float: right;
+    width: 50%;
+    max-width: 400px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    clear: right;
+}
+
+.extra-charges-header {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color: white;
+    padding: 12px 16px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.extra-charges-header h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.extra-charges-header h4 i {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.extra-charges-content {
+    padding: 0;
+    background-color: white;
+}
+
+.extra-charges-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.extra-charges-table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 14px;
+    color: #495057;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.extra-charges-table th.description-col {
+    width: 70%;
+}
+
+.extra-charges-table th.amount-col {
+    width: 30%;
+    text-align: right;
+}
+
+.extra-charges-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.extra-charges-table td:first-child {
+    font-weight: 500;
+    color: #495057;
+}
+
+.extra-charges-table td:last-child {
+    text-align: right;
+    font-weight: 600;
+    color: #28a745;
+    font-size: 15px;
+}
+
+.extra-charges-table .charge-description {
+    position: relative;
+    padding-left: 20px;
+}
+
+.extra-charges-table .charge-description::before {
+    content: "•";
+    position: absolute;
+    left: 8px;
+    color: #6c757d;
+    font-weight: bold;
+}
+
+.extra-charges-table .charge-amount {
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.extra-charges-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.extra-charges-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Thermal format extra charges */
+.thermal-format .extra-charges-wrapper {
+    margin: 15px 0;
+    width: 100%;
+}
+
+.thermal-format .extra-charges-section {
+    width: 100%;
+    max-width: none;
+    border: 2px solid #000;
+    border-radius: 0;
+    background-color: white;
+    box-shadow: none;
+}
+
+.thermal-format .extra-charges-header {
+    background: #000;
+    color: white;
+    padding: 8px 10px;
+    border-bottom: 2px solid #000;
+}
+
+.thermal-format .extra-charges-header h4 {
+    font-size: 12px;
+    margin: 0;
+    gap: 4px;
+}
+
+.thermal-format .extra-charges-header h4 i {
+    font-size: 10px;
+}
+
+.thermal-format .extra-charges-content {
+    padding: 0;
+    background-color: white;
+}
+
+.thermal-format .extra-charges-table {
+    margin: 0;
+}
+
+.thermal-format .extra-charges-table th {
+    background-color: #f0f0f0;
+    border-bottom: 2px solid #000;
+    padding: 6px 8px;
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.thermal-format .extra-charges-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #000;
+    font-size: 11px;
+}
+
+.thermal-format .extra-charges-table td:last-child {
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.thermal-format .extra-charges-table .charge-description {
+    position: relative;
+    padding-left: 12px;
+}
+
+.thermal-format .extra-charges-table .charge-description::before {
+    content: "•";
+    position: absolute;
+    left: 4px;
+    color: #000;
+    font-weight: bold;
+}
+
+.thermal-format .extra-charges-table .charge-amount {
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.3px;
+}
+
+.thermal-format .extra-charges-table tbody tr:hover {
+    background-color: transparent;
+}
+
+
 
 /* Print Styles */
 @media print {

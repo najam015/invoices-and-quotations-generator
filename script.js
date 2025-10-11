@@ -29,10 +29,21 @@ document.addEventListener('DOMContentLoaded', function () {
         autoSaveAndUpdate();
     });
 
-    // Remove line item
+    // Add new extra charge
+    document.getElementById('addExtraCharge').addEventListener('click', function () {
+        addExtraCharge();
+        autoSaveAndUpdate();
+    });
+
+    // Remove line item or extra charge
     document.addEventListener('click', function (e) {
         if (e.target && e.target.classList.contains('remove-line')) {
             e.target.closest('.line-item-row').remove();
+            calculateTotals();
+            autoSaveAndUpdate();
+        }
+        if (e.target && e.target.classList.contains('remove-extra-charge')) {
+            e.target.closest('.extra-charge-row').remove();
             calculateTotals();
             autoSaveAndUpdate();
         }
@@ -42,6 +53,10 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('input', function (e) {
         if (e.target && (e.target.name === 'quantity' || e.target.name === 'rate')) {
             calculateLineTotal(e.target);
+            calculateTotals();
+        }
+
+        if (e.target && e.target.name === 'extraChargeAmount') {
             calculateTotals();
         }
 
@@ -131,6 +146,24 @@ function addLineItem() {
     lineItems.appendChild(newItem);
 }
 
+function addExtraCharge() {
+    const extraCharges = document.getElementById('extraCharges');
+    const newCharge = document.createElement('div');
+    newCharge.className = 'extra-charge-row row g-2';
+    newCharge.innerHTML = `
+                <div class="col-md-8">
+                    <input type="text" class="form-control" placeholder="Charge Description (e.g., Delivery Charges)" name="extraChargeDescription">
+                </div>
+                <div class="col-md-3">
+                    <input type="number" class="form-control" placeholder="Amount" name="extraChargeAmount" min="0" step="0.01" value="0">
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-danger btn-sm remove-extra-charge">×</button>
+                </div>
+            `;
+    extraCharges.appendChild(newCharge);
+}
+
 function calculateLineTotals() {
     document.querySelectorAll('.line-item-row').forEach(row => {
         calculateLineTotal(row.querySelector('input[name="quantity"]'));
@@ -153,14 +186,30 @@ function calculateTotals() {
         subtotal += total;
     });
 
+    // Calculate extra charges total
+    let extraChargesTotal = 0;
+    document.querySelectorAll('.extra-charge-row').forEach(row => {
+        const amount = parseFloat(row.querySelector('input[name="extraChargeAmount"]').value) || 0;
+        extraChargesTotal += amount;
+    });
+
     const taxPercent = parseFloat(document.getElementById('taxPercent').value) || 0;
     const taxAmount = subtotal * (taxPercent / 100);
     const discount = parseFloat(document.getElementById('discount').value) || 0;
-    const grandTotal = subtotal + taxAmount - discount;
+    const grandTotal = subtotal + extraChargesTotal + taxAmount - discount;
 
     document.getElementById('subtotal').value = subtotal.toFixed(2);
+    document.getElementById('extraChargesTotal').value = extraChargesTotal.toFixed(2);
     document.getElementById('taxAmount').value = taxAmount.toFixed(2);
     document.getElementById('grandTotal').value = grandTotal.toFixed(2);
+
+    // Show/hide extra charges total row
+    const extraChargesTotalRow = document.getElementById('extraChargesTotalRow');
+    if (extraChargesTotal > 0) {
+        extraChargesTotalRow.style.display = 'block';
+    } else {
+        extraChargesTotalRow.style.display = 'none';
+    }
 }
 
 function generatePreview() {
@@ -223,8 +272,25 @@ function generatePreview() {
         }
     });
 
+    // Generate extra charges HTML
+    let extraChargesHTML = '';
+    document.querySelectorAll('.extra-charge-row').forEach(row => {
+        const description = row.querySelector('input[name="extraChargeDescription"]').value || '';
+        const amount = parseFloat(row.querySelector('input[name="extraChargeAmount"]').value || 0).toFixed(2);
+
+        if (description && parseFloat(amount) > 0) {
+            extraChargesHTML += `
+                        <tr>
+                            <td class="charge-description">${description}</td>
+                            <td class="charge-amount">${currency} ${amount}</td>
+                        </tr>
+                    `;
+        }
+    });
+
     // Get totals
     const subtotal = document.getElementById('subtotal').value || '0.00';
+    const extraChargesTotal = document.getElementById('extraChargesTotal').value || '0.00';
     const taxAmount = document.getElementById('taxAmount').value || '0.00';
     const discount = document.getElementById('discount').value || '0.00';
     const grandTotal = document.getElementById('grandTotal').value || '0.00';
@@ -329,20 +395,55 @@ function generatePreview() {
                     </tbody>
                 </table>
                 
+                ${extraChargesHTML ? `
+                <div class="extra-charges-wrapper">
+                    <div class="extra-charges-section">
+                        <div class="extra-charges-header">
+                            <h4><i class="fas fa-plus-circle"></i> Additional Charges</h4>
+                        </div>
+                        <div class="extra-charges-content">
+                            <table class="extra-charges-table">
+                                <thead>
+                                    <tr>
+                                        <th class="description-col">Description</th>
+                                        <th class="amount-col">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${extraChargesHTML}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+                
                 <div class="invoice-totals">
                     <table>
+                        ${(parseFloat(extraChargesTotal) > 0 || parseFloat(taxAmount) > 0 || parseFloat(discount) > 0) ? `
                         <tr>
                             <td>Sub Total</td>
                             <td>${currency} ${subtotal}</td>
                         </tr>
+                        ` : ''}
+                        ${parseFloat(extraChargesTotal) > 0 ? `
+                        <tr>
+                            <td>Extra Charges</td>
+                            <td>${currency} ${extraChargesTotal}</td>
+                        </tr>
+                        ` : ''}
+                        ${parseFloat(taxAmount) > 0 ? `
                         <tr>
                             <td>Tax</td>
                             <td>${currency} ${taxAmount}</td>
                         </tr>
+                        ` : ''}
+                        ${parseFloat(discount) > 0 ? `
                         <tr>
                             <td>Discount</td>
                             <td>${currency} ${discount}</td>
                         </tr>
+                        ` : ''}
                         <tr>
                             <td><strong>TOTAL</strong></td>
                             <td><strong>${currency} ${grandTotal}</strong></td>
@@ -391,7 +492,8 @@ function saveToStorage(isAutoSave = false) {
         comments: document.getElementById('comments').value,
         termsConditions: document.getElementById('termsConditions').value,
         currency: document.getElementById('currency').value,
-        lineItems: []
+        lineItems: [],
+        extraCharges: []
     };
 
     document.querySelectorAll('.line-item-row').forEach(row => {
@@ -399,6 +501,13 @@ function saveToStorage(isAutoSave = false) {
             description: row.querySelector('input[name="description"]').value,
             quantity: row.querySelector('input[name="quantity"]').value,
             rate: row.querySelector('input[name="rate"]').value
+        });
+    });
+
+    document.querySelectorAll('.extra-charge-row').forEach(row => {
+        formData.extraCharges.push({
+            description: row.querySelector('input[name="extraChargeDescription"]').value,
+            amount: row.querySelector('input[name="extraChargeAmount"]').value
         });
     });
 
@@ -432,8 +541,9 @@ function loadFromStorage() {
         document.getElementById('validUntilContainer').style.display =
             formData.isQuotation ? 'block' : 'none';
 
-        // Clear existing line items
+        // Clear existing line items and extra charges
         document.getElementById('lineItems').innerHTML = '';
+        document.getElementById('extraCharges').innerHTML = '';
 
         // Add saved line items
         if (formData.lineItems && formData.lineItems.length > 0) {
@@ -448,6 +558,16 @@ function loadFromStorage() {
         } else {
             // Add at least one empty line item
             addLineItem();
+        }
+
+        // Add saved extra charges
+        if (formData.extraCharges && formData.extraCharges.length > 0) {
+            formData.extraCharges.forEach(charge => {
+                addExtraCharge();
+                const lastRow = document.querySelector('.extra-charge-row:last-child');
+                lastRow.querySelector('input[name="extraChargeDescription"]').value = charge.description || '';
+                lastRow.querySelector('input[name="extraChargeAmount"]').value = charge.amount || '0';
+            });
         }
 
         calculateTotals();
@@ -558,7 +678,8 @@ function shareForm() {
         comments: document.getElementById('comments').value,
         termsConditions: document.getElementById('termsConditions').value,
         currency: document.getElementById('currency').value,
-        lineItems: []
+        lineItems: [],
+        extraCharges: []
     };
 
     // Collect line items
@@ -576,6 +697,19 @@ function shareForm() {
         }
     });
 
+    // Collect extra charges
+    document.querySelectorAll('.extra-charge-row').forEach(row => {
+        const description = row.querySelector('input[name="extraChargeDescription"]').value;
+        const amount = row.querySelector('input[name="extraChargeAmount"]').value;
+        
+        if (description || amount) {
+            formData.extraCharges.push({
+                description: description,
+                amount: amount
+            });
+        }
+    });
+
     // Create URL with parameters
     const url = new URL(window.location.href);
     url.search = ''; // Clear existing parameters
@@ -585,6 +719,10 @@ function shareForm() {
         if (key === 'lineItems') {
             if (formData.lineItems.length > 0) {
                 url.searchParams.set('lineItems', JSON.stringify(formData.lineItems));
+            }
+        } else if (key === 'extraCharges') {
+            if (formData.extraCharges.length > 0) {
+                url.searchParams.set('extraCharges', JSON.stringify(formData.extraCharges));
             }
         } else if (formData[key] !== '' && formData[key] !== false && formData[key] !== '0') {
             url.searchParams.set(key, formData[key]);
@@ -685,6 +823,27 @@ function loadFromUrlParams() {
         }
     }
 
+    // Load extra charges
+    const extraChargesParam = urlParams.get('extraCharges');
+    if (extraChargesParam) {
+        try {
+            const extraCharges = JSON.parse(extraChargesParam);
+            
+            // Clear existing extra charges
+            document.getElementById('extraCharges').innerHTML = '';
+            
+            // Add extra charges from URL
+            extraCharges.forEach(charge => {
+                addExtraCharge();
+                const lastRow = document.querySelector('.extra-charge-row:last-child');
+                lastRow.querySelector('input[name="extraChargeDescription"]').value = charge.description || '';
+                lastRow.querySelector('input[name="extraChargeAmount"]').value = charge.amount || '0';
+            });
+        } catch (e) {
+            console.error('Error parsing extra charges from URL:', e);
+        }
+    }
+
     // Recalculate totals and update preview
     calculateTotals();
     generatePreview();
@@ -712,7 +871,8 @@ function generateShareableUrl() {
         comments: document.getElementById('comments').value,
         termsConditions: document.getElementById('termsConditions').value,
         currency: document.getElementById('currency').value,
-        lineItems: []
+        lineItems: [],
+        extraCharges: []
     };
 
     // Collect line items
@@ -730,6 +890,19 @@ function generateShareableUrl() {
         }
     });
 
+    // Collect extra charges
+    document.querySelectorAll('.extra-charge-row').forEach(row => {
+        const description = row.querySelector('input[name="extraChargeDescription"]').value;
+        const amount = row.querySelector('input[name="extraChargeAmount"]').value;
+        
+        if (description || amount) {
+            formData.extraCharges.push({
+                description: description,
+                amount: amount
+            });
+        }
+    });
+
     // Create URL with parameters
     const url = new URL(window.location.href);
     url.search = ''; // Clear existing parameters
@@ -739,6 +912,10 @@ function generateShareableUrl() {
         if (key === 'lineItems') {
             if (formData.lineItems.length > 0) {
                 url.searchParams.set('lineItems', JSON.stringify(formData.lineItems));
+            }
+        } else if (key === 'extraCharges') {
+            if (formData.extraCharges.length > 0) {
+                url.searchParams.set('extraCharges', JSON.stringify(formData.extraCharges));
             }
         } else if (formData[key] !== '' && formData[key] !== false && formData[key] !== '0') {
             url.searchParams.set(key, formData[key]);
@@ -766,6 +943,7 @@ function sendDiscordWebhook() {
     
     // Get totals
     const subtotal = document.getElementById('subtotal').value || '0.00';
+    const extraChargesTotal = document.getElementById('extraChargesTotal').value || '0.00';
     const taxAmount = document.getElementById('taxAmount').value || '0.00';
     const discount = document.getElementById('discount').value || '0.00';
     const grandTotal = document.getElementById('grandTotal').value || '0.00';
@@ -822,7 +1000,7 @@ function sendDiscordWebhook() {
             },
             {
                 name: 'Summary',
-                value: `**Subtotal:** ${currency} ${subtotal}\n**Tax:** ${currency} ${taxAmount}\n**Discount:** ${currency} ${discount}\n**Total:** ${currency} ${grandTotal}`,
+                value: `${(parseFloat(extraChargesTotal) > 0 || parseFloat(taxAmount) > 0 || parseFloat(discount) > 0) ? `**Subtotal:** ${currency} ${subtotal}` : ''}${parseFloat(extraChargesTotal) > 0 ? `\n**Extra Charges:** ${currency} ${extraChargesTotal}` : ''}${parseFloat(taxAmount) > 0 ? `\n**Tax:** ${currency} ${taxAmount}` : ''}${parseFloat(discount) > 0 ? `\n**Discount:** ${currency} ${discount}` : ''}\n**Total:** ${currency} ${grandTotal}`,
                 inline: true
             },
             {
